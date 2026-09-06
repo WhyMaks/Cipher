@@ -87,6 +87,21 @@
 
   textarea:focus, input:focus { background: var(--field-focus); }
 
+  input[type="color"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 62px;
+    border: none;
+    border-radius: 14px;
+    background: var(--field);
+    padding: 0;
+    cursor: pointer;
+  }
+  input[type="color"]::-webkit-color-swatch-wrapper { padding: 8px; }
+  input[type="color"]::-webkit-color-swatch { border: none; border-radius: 8px; }
+  input[type="color"]::-moz-color-swatch { border: none; border-radius: 8px; }
+
   button.go {
     width: 100%;
     background: var(--accent);
@@ -158,6 +173,16 @@
     <input type="text" id="pwInput" placeholder="passphrase">
   </div>
 
+  <div class="field">
+    <label for="colorPicker">color</label>
+    <input type="color" id="colorPicker" value="#e7a256">
+  </div>
+
+  <div class="field">
+    <label for="hexInput">hex code</label>
+    <input type="text" id="hexInput" placeholder="#e7a256" value="#e7a256">
+  </div>
+
   <button class="go" onclick="run()" id="goBtn">encode</button>
   <div class="status" id="status"></div>
 
@@ -179,6 +204,17 @@
 <script>
 let mode = 'encode';
 
+document.getElementById('colorPicker').addEventListener('input', (e) => {
+  document.getElementById('hexInput').value = e.target.value;
+});
+
+document.getElementById('hexInput').addEventListener('input', (e) => {
+  const v = e.target.value.trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+    document.getElementById('colorPicker').value = v;
+  }
+});
+
 function switchMode(m) {
   mode = m;
   document.getElementById('btnEncode').classList.toggle('active', m === 'encode');
@@ -198,15 +234,19 @@ function copyResult() {
 function run() {
   const text = document.getElementById('textInput').value;
   const passphrase = document.getElementById('pwInput').value;
+  const hexKey = document.getElementById('hexInput').value;
   const statusEl = document.getElementById('status');
   document.getElementById('resultField').style.display = 'none';
 
   statusEl.className = 'status';
   if (!text) { statusEl.textContent = 'enter some text'; statusEl.className = 'status error'; return; }
   if (!passphrase) { statusEl.textContent = 'enter a passphrase'; statusEl.className = 'status error'; return; }
+  if (!hexKey) { statusEl.textContent = 'pick a color'; statusEl.className = 'status error'; return; }
 
   try {
-    const result = mode === 'encode' ? encodeCipher(passphrase, text) : decodeCipher(passphrase, text);
+    const result = mode === 'encode'
+      ? encodeCipher(passphrase, hexKey, text)
+      : decodeCipher(passphrase, hexKey, text);
     document.getElementById('resultOutput').value = result;
     document.getElementById('resultField').style.display = 'block';
     statusEl.textContent = '';
