@@ -108,8 +108,21 @@
   input[type="color"]::-moz-color-swatch { border: none; border-radius: 8px; }
   input[type="color"]:active { transform: scale(0.98); }
 
+  /* password + hex grouped as one unit */
+  .password-group {
+    border: 2px solid var(--field);
+    border-radius: 20px;
+    padding: 24px 24px 4px;
+    margin-bottom: 36px;
+  }
+
+  .password-group .field,
+  .password-group .collapsible.open {
+    margin-bottom: 28px;
+  }
+
   /* custom checkbox */
-  .checkbox-field { margin-bottom: 28px; }
+  .checkbox-field { margin-bottom: 24px; }
 
   .checkbox-label {
     display: flex;
@@ -170,16 +183,47 @@
   .checkbox-text {
     font-size: 18px;
     font-weight: 700;
-    opacity: 1;
-    max-width: 300px;
-    transition: opacity 0.2s ease, max-width 0.3s ease, margin 0.3s ease;
-    overflow: hidden;
-    white-space: nowrap;
   }
 
-  .checkbox-label input[type="checkbox"]:checked ~ .checkbox-text {
-    opacity: 0;
-    max-width: 0;
+  /* algorithm switch (+ / x) between passphrase and hex */
+  .algo-wrap {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: -8px 0 28px;
+  }
+
+  .algo-wrap .line {
+    flex: 1;
+    height: 1px;
+    background: var(--field);
+  }
+
+  .algo-switch {
+    display: flex;
+    gap: 4px;
+    background: var(--bg);
+    border-radius: 12px;
+    padding: 4px;
+    flex-shrink: 0;
+  }
+
+  .algo-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 700;
+    padding: 8px 16px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .algo-btn.active {
+    background: var(--accent);
+    color: #2a1d0c;
   }
 
   /* collapsible sections (color/hex fields, result) */
@@ -272,31 +316,54 @@
     <textarea id="textInput" placeholder="type anything"></textarea>
   </div>
 
-  <div class="field">
-    <label for="pwInput">password</label>
-    <input type="text" id="pwInput" placeholder="passphrase">
-  </div>
+  <div class="password-group">
 
-  <div class="field checkbox-field">
-    <label class="checkbox-label">
-      <input type="checkbox" id="hexToggle" onchange="toggleHex()">
-      <span class="checkbox-box"></span>
-      <span class="checkbox-text">include hex?</span>
-    </label>
-  </div>
-
-  <div class="collapsible" id="colorField">
-    <div class="collapsible-inner">
-      <label for="colorPicker">color</label>
-      <input type="color" id="colorPicker" value="#e7a256">
+    <div class="checkbox-field">
+      <label class="checkbox-label">
+        <input type="checkbox" id="passToggle" checked onchange="togglePass()">
+        <span class="checkbox-box"></span>
+        <span class="checkbox-text">include password?</span>
+      </label>
     </div>
-  </div>
 
-  <div class="collapsible" id="hexField">
-    <div class="collapsible-inner">
-      <label for="hexInput">hex code</label>
-      <input type="text" id="hexInput" placeholder="#e7a256" value="#e7a256">
+    <div class="collapsible open" id="passField">
+      <div class="collapsible-inner">
+        <label for="pwInput">password</label>
+        <input type="text" id="pwInput" placeholder="passphrase">
+      </div>
     </div>
+
+    <div class="algo-wrap">
+      <div class="line"></div>
+      <div class="algo-switch">
+        <button type="button" class="algo-btn active" id="algoAdd" onclick="setAlgo('add')">+</button>
+        <button type="button" class="algo-btn" id="algoMul" onclick="setAlgo('multiply')">×</button>
+      </div>
+      <div class="line"></div>
+    </div>
+
+    <div class="checkbox-field">
+      <label class="checkbox-label">
+        <input type="checkbox" id="hexToggle" onchange="toggleHex()">
+        <span class="checkbox-box"></span>
+        <span class="checkbox-text">include hex?</span>
+      </label>
+    </div>
+
+    <div class="collapsible" id="colorField">
+      <div class="collapsible-inner">
+        <label for="colorPicker">color</label>
+        <input type="color" id="colorPicker" value="#e7a256">
+      </div>
+    </div>
+
+    <div class="collapsible" id="hexField">
+      <div class="collapsible-inner">
+        <label for="hexInput">hex code</label>
+        <input type="text" id="hexInput" placeholder="#e7a256" value="#e7a256">
+      </div>
+    </div>
+
   </div>
 
   <button class="go" onclick="run()" id="goBtn">encode</button>
@@ -321,12 +388,23 @@
 <script src="cipher.js"></script>
 <script>
 let mode = 'encode';
-const NO_HEX = '000000'; // contributes nothing to the key when hex isn't included
+let algo = 'add';
+
+function togglePass() {
+  const checked = document.getElementById('passToggle').checked;
+  document.getElementById('passField').classList.toggle('open', checked);
+}
 
 function toggleHex() {
   const checked = document.getElementById('hexToggle').checked;
   document.getElementById('colorField').classList.toggle('open', checked);
   document.getElementById('hexField').classList.toggle('open', checked);
+}
+
+function setAlgo(a) {
+  algo = a;
+  document.getElementById('algoAdd').classList.toggle('active', a === 'add');
+  document.getElementById('algoMul').classList.toggle('active', a === 'multiply');
 }
 
 document.getElementById('colorPicker').addEventListener('input', (e) => {
@@ -358,21 +436,27 @@ function copyResult() {
 
 function run() {
   const text = document.getElementById('textInput').value;
-  const passphrase = document.getElementById('pwInput').value;
+  const passIncluded = document.getElementById('passToggle').checked;
   const hexIncluded = document.getElementById('hexToggle').checked;
-  const hexKey = hexIncluded ? document.getElementById('hexInput').value : NO_HEX;
+  const passphrase = passIncluded ? document.getElementById('pwInput').value : null;
+  const hexKey = hexIncluded ? document.getElementById('hexInput').value : null;
   const statusEl = document.getElementById('status');
   document.getElementById('resultField').classList.remove('open');
 
   statusEl.className = 'status';
   if (!text) { statusEl.textContent = 'enter some text'; statusEl.className = 'status error'; return; }
-  if (!passphrase) { statusEl.textContent = 'enter a passphrase'; statusEl.className = 'status error'; return; }
+  if (!passIncluded && !hexIncluded) {
+    statusEl.textContent = 'include at least a password or a hex key';
+    statusEl.className = 'status error';
+    return;
+  }
+  if (passIncluded && !passphrase) { statusEl.textContent = 'enter a passphrase'; statusEl.className = 'status error'; return; }
   if (hexIncluded && !hexKey) { statusEl.textContent = 'pick a color'; statusEl.className = 'status error'; return; }
 
   try {
     const result = mode === 'encode'
-      ? encodeCipher(passphrase, hexKey, text)
-      : decodeCipher(passphrase, hexKey, text);
+      ? encodeCipher(passphrase, hexKey, text, algo)
+      : decodeCipher(passphrase, hexKey, text, algo);
     document.getElementById('resultOutput').value = result;
     document.getElementById('resultField').classList.add('open');
     statusEl.textContent = '';
