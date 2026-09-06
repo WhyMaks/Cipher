@@ -23,21 +23,33 @@ function hexToNums(hexKey) {
   return nums;
 }
 
-function buildKeyStream(passNums, hexNums, length) {
+function buildKeyStream(passNums, hexNums, length, algo) {
+  if (!passNums && !hexNums) {
+    throw new Error('At least one of password or hex key must be included');
+  }
   const key = [];
   for (let i = 0; i < length; i++) {
-    const pk = passNums[i % passNums.length];
-    const hk = hexNums[i % hexNums.length];
-    key.push(pymod(pk + hk, BYTE));
+    let val;
+    if (passNums && hexNums) {
+      const pk = passNums[i % passNums.length];
+      const hk = hexNums[i % hexNums.length];
+      val = algo === 'multiply' ? pymod(pk * hk, BYTE) : pymod(pk + hk, BYTE);
+    } else if (passNums) {
+      val = passNums[i % passNums.length];
+    } else {
+      val = hexNums[i % hexNums.length];
+    }
+    key.push(val);
   }
   return key;
 }
 
-function encodeCipher(passphrase, hexKey, text) {
-  const pNums = passphraseToNums(passphrase);
-  const hNums = hexToNums(hexKey);
+function encodeCipher(passphrase, hexKey, text, algo) {
+  algo = algo || 'add';
+  const pNums = passphrase ? passphraseToNums(passphrase) : null;
+  const hNums = hexKey ? hexToNums(hexKey) : null;
   const chars = Array.from(text);
-  const key = buildKeyStream(pNums, hNums, chars.length);
+  const key = buildKeyStream(pNums, hNums, chars.length, algo);
 
   let result = '';
   chars.forEach((ch, i) => {
@@ -49,14 +61,15 @@ function encodeCipher(passphrase, hexKey, text) {
   return result;
 }
 
-function decodeCipher(passphrase, hexKey, cipherText) {
+function decodeCipher(passphrase, hexKey, cipherText, algo) {
+  algo = algo || 'add';
   if (cipherText.length % GROUP_WIDTH !== 0) {
     throw new Error('Cipher text length must be a multiple of 3');
   }
-  const pNums = passphraseToNums(passphrase);
-  const hNums = hexToNums(hexKey);
+  const pNums = passphrase ? passphraseToNums(passphrase) : null;
+  const hNums = hexKey ? hexToNums(hexKey) : null;
   const nChars = cipherText.length / GROUP_WIDTH;
-  const key = buildKeyStream(pNums, hNums, nChars);
+  const key = buildKeyStream(pNums, hNums, nChars, algo);
 
   let result = '';
   for (let i = 0; i < nChars; i++) {
