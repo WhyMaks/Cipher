@@ -1,81 +1,74 @@
+// Cipher v2: full ASCII/byte range, two-part key (passphrase + hex color code).
+// See encryption.py for the full explanation of each step.
+
+const BYTE = 256;
+const SHIFT = 3;
+const GROUP_WIDTH = 3;
+
 function pymod(a, n) { return ((a % n) + n) % n; }
-
-function letterToNum(ch) {
-  return ch.toLowerCase().codePointAt(0) - 'a'.codePointAt(0);
-}
-
-function numToLetter(n) {
-  return String.fromCodePoint(pymod(n, 26) + 'a'.codePointAt(0));
-}
 
 function passphraseToNums(passphrase) {
   if (!passphrase) throw new Error('Passphrase cannot be empty');
-  return Array.from(passphrase).map(c => pymod(c.codePointAt(0), 26));
+  return Array.from(passphrase).map(c => pymod(c.codePointAt(0), BYTE));
 }
 
-const ALPHABET_SIZE = 26;
-const SHIFT = 3;
-
-function isLetter(ch) {
-  return /\p{L}/u.test(ch);
-}
-function isUpperChar(ch) {
-  return ch !== ch.toLowerCase() && ch === ch.toUpperCase();
-}
-
-function encodeCipher(passphrase, text) {
-  const keyNums = passphraseToNums(passphrase);
-  const keyLen = keyNums.length;
-  let result = '';
-  let keyIndex = 0;
-
-  for (const ch of Array.from(text)) {
-    if (isLetter(ch)) {
-      const p = letterToNum(ch);
-      const k = keyNums[keyIndex % keyLen];
-      let c = pymod(p + k, ALPHABET_SIZE);
-      c = pymod(c - SHIFT, ALPHABET_SIZE);
-      if (isUpperChar(ch)) c += ALPHABET_SIZE;
-      result += String(c).padStart(3, '0');
-      keyIndex++;
-    } else {
-      result += '[' + ch + ']';
-    }
+function hexToNums(hexKey) {
+  let h = hexKey.trim().replace(/^#/, '');
+  if (!h) throw new Error('Hex key cannot be empty');
+  if (!/^[0-9a-fA-F]+$/.test(h)) {
+    throw new Error('Hex key must contain only hex digits (0-9, a-f)');
   }
+  if (h.length % 2 !== 0) h = '0' + h;
+  const nums = [];
+  for (let i = 0; i < h.length; i += 2) {
+    nums.push(parseInt(h.slice(i, i + 2), 16));
+  }
+  return nums;
+}
+
+function buildKeyStream(passNums, hexNums, length) {
+  const key = [];
+  for (let i = 0; i < length; i++) {
+    const pk = passNums[i % passNums.length];
+    const hk = hexNums[i % hexNums.length];
+    key.push(pymod(pk + hk, BYTE));
+  }
+  return key;
+}
+
+function encodeCipher(passphrase, hexKey, text) {
+  const pNums = passphraseToNums(passphrase);
+  const hNums = hexToNums(hexKey);
+  const chars = Array.from(text);
+  const key = buildKeyStream(pNums, hNums, chars.length);
+
+  let result = '';
+  chars.forEach((ch, i) => {
+    const p = pymod(ch.codePointAt(0), BYTE);
+    let c = pymod(p + key[i], BYTE);
+    c = pymod(c - SHIFT, BYTE);
+    result += String(c).padStart(GROUP_WIDTH, '0');
+  });
   return result;
 }
 
-function decodeCipher(passphrase, cipherText) {
-  const keyNums = passphraseToNums(passphrase);
-  const keyLen = keyNums.length;
-  let result = '';
-  let keyIndex = 0;
-  let i = 0;
-  const n = cipherText.length;
+function decodeCipher(passphrase, hexKey, cipherText) {
+  if (cipherText.length % GROUP_WIDTH !== 0) {
+    throw new Error('Cipher text length must be a multiple of 3');
+  }
+  const pNums = passphraseToNums(passphrase);
+  const hNums = hexToNums(hexKey);
+  const nChars = cipherText.length / GROUP_WIDTH;
+  const key = buildKeyStream(pNums, hNums, nChars);
 
-  while (i < n) {
-    if (cipherText[i] === '[') {
-      const end = cipherText.indexOf(']', i);
-      if (end === -1) throw new Error('Malformed input: unmatched [');
-      result += cipherText.slice(i + 1, end);
-      i = end + 1;
-    } else {
-      const group = cipherText.slice(i, i + 3);
-      if (group.length < 3 || !/^\d{3}$/.test(group)) {
-        throw new Error('Malformed input near position ' + i);
-      }
-      let c = parseInt(group, 10);
-      const isUpper = c >= ALPHABET_SIZE;
-      c = pymod(c, ALPHABET_SIZE);
-      c = pymod(c + SHIFT, ALPHABET_SIZE);
-      const k = keyNums[keyIndex % keyLen];
-      const p = pymod(c - k, ALPHABET_SIZE);
-      let letter = numToLetter(p);
-      if (isUpper) letter = letter.toUpperCase();
-      result += letter;
-      keyIndex++;
-      i += 3;
-    }
+  let result = '';
+  for (let i = 0; i < nChars; i++) {
+    const group = cipherText.slice(i * GROUP_WIDTH, (i + 1) * GROUP_WIDTH);
+    if (!/^\d{3}$/.test(group)) throw new Error('Malformed cipher text near position ' + (i * GROUP_WIDTH));
+    let c = parseInt(group, 10);
+    c = pymod(c + SHIFT, BYTE);
+    const p = pymod(c - key[i], BYTE);
+    result += String.fromCodePoint(p);
   }
   return result;
 }
