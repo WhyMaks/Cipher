@@ -1,6 +1,3 @@
-// Cipher v2: full ASCII/byte range, two-part key (passphrase + hex color code).
-// See encryption.py for the full explanation of each step.
-
 const BYTE = 256;
 const SHIFT = 3;
 const GROUP_WIDTH = 3;
