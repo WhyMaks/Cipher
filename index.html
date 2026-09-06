@@ -50,6 +50,7 @@
     color: var(--text-dim);
     cursor: pointer;
     border-bottom: 3px solid transparent;
+    transition: color 0.2s ease, border-color 0.25s ease;
   }
 
   .mode-switch button.active {
@@ -77,7 +78,7 @@
     font-size: 16px;
     resize: none;
     outline: none;
-    transition: background 0.15s ease;
+    transition: background 0.25s ease, box-shadow 0.25s ease;
   }
 
   textarea::placeholder, input::placeholder { color: var(--text-dim); }
@@ -85,7 +86,10 @@
   textarea { min-height: 100px; line-height: 1.5; }
   input[type="text"] { height: 62px; }
 
-  textarea:focus, input:focus { background: var(--field-focus); }
+  textarea:focus, input:focus {
+    background: var(--field-focus);
+    box-shadow: 0 0 0 2px var(--accent) inset;
+  }
 
   input[type="color"] {
     -webkit-appearance: none;
@@ -97,10 +101,106 @@
     background: var(--field);
     padding: 0;
     cursor: pointer;
+    transition: transform 0.15s ease;
   }
   input[type="color"]::-webkit-color-swatch-wrapper { padding: 8px; }
-  input[type="color"]::-webkit-color-swatch { border: none; border-radius: 8px; }
+  input[type="color"]::-webkit-color-swatch { border: none; border-radius: 8px; transition: background 0.1s ease; }
   input[type="color"]::-moz-color-swatch { border: none; border-radius: 8px; }
+  input[type="color"]:active { transform: scale(0.98); }
+
+  /* custom checkbox */
+  .checkbox-field { margin-bottom: 28px; }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    margin-bottom: 0;
+  }
+
+  .checkbox-label input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .checkbox-box {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: var(--field);
+    border: 2px solid var(--field);
+    flex-shrink: 0;
+    margin-right: 14px;
+    position: relative;
+    transition: background 0.25s ease, border-color 0.25s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .checkbox-label:active .checkbox-box {
+    transform: scale(0.88);
+  }
+
+  .checkbox-box::after {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 3px;
+    width: 6px;
+    height: 12px;
+    border: solid #2a1d0c;
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg) scale(0);
+    opacity: 0;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s ease;
+    transition-delay: 0.05s;
+  }
+
+  .checkbox-label input[type="checkbox"]:checked + .checkbox-box {
+    background: var(--accent);
+    border-color: var(--accent);
+    transform: scale(1.08);
+  }
+
+  .checkbox-label input[type="checkbox"]:checked + .checkbox-box::after {
+    opacity: 1;
+    transform: rotate(45deg) scale(1);
+  }
+
+  .checkbox-text {
+    font-size: 18px;
+    font-weight: 700;
+    opacity: 1;
+    max-width: 300px;
+    transition: opacity 0.2s ease, max-width 0.3s ease, margin 0.3s ease;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .checkbox-label input[type="checkbox"]:checked ~ .checkbox-text {
+    opacity: 0;
+    max-width: 0;
+  }
+
+  /* collapsible sections (color/hex fields, result) */
+  .collapsible {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    margin-bottom: 0;
+    transition: grid-template-rows 0.35s ease, opacity 0.25s ease, margin-bottom 0.35s ease;
+  }
+
+  .collapsible.open {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    margin-bottom: 36px;
+  }
+
+  .collapsible > .collapsible-inner {
+    overflow: hidden;
+    min-height: 0;
+  }
 
   button.go {
     width: 100%;
@@ -114,15 +214,17 @@
     font-weight: 700;
     cursor: pointer;
     margin-bottom: 14px;
+    transition: opacity 0.2s ease, transform 0.15s ease;
   }
 
   button.go:hover { opacity: 0.92; }
-  button.go:active { opacity: 0.8; }
+  button.go:active { opacity: 0.8; transform: scale(0.98); }
 
   .status {
     font-size: 14px;
     min-height: 18px;
     margin-bottom: 6px;
+    transition: color 0.2s ease;
   }
   .status.error { color: var(--error); }
   .status.ok { color: var(--ok); }
@@ -131,6 +233,7 @@
     background: transparent;
     border: 2px solid var(--field);
     color: var(--text);
+    transition: border-color 0.25s ease;
   }
 
   .copy-link {
@@ -144,6 +247,7 @@
     padding: 0;
     text-decoration: underline;
     text-underline-offset: 3px;
+    transition: color 0.2s ease;
   }
   .copy-link:hover { color: var(--text); }
 
@@ -173,24 +277,38 @@
     <input type="text" id="pwInput" placeholder="passphrase">
   </div>
 
-  <div class="field">
-    <label for="colorPicker">color</label>
-    <input type="color" id="colorPicker" value="#e7a256">
+  <div class="field checkbox-field">
+    <label class="checkbox-label">
+      <input type="checkbox" id="hexToggle" onchange="toggleHex()">
+      <span class="checkbox-box"></span>
+      <span class="checkbox-text">include hex?</span>
+    </label>
   </div>
 
-  <div class="field">
-    <label for="hexInput">hex code</label>
-    <input type="text" id="hexInput" placeholder="#e7a256" value="#e7a256">
+  <div class="collapsible" id="colorField">
+    <div class="collapsible-inner">
+      <label for="colorPicker">color</label>
+      <input type="color" id="colorPicker" value="#e7a256">
+    </div>
+  </div>
+
+  <div class="collapsible" id="hexField">
+    <div class="collapsible-inner">
+      <label for="hexInput">hex code</label>
+      <input type="text" id="hexInput" placeholder="#e7a256" value="#e7a256">
+    </div>
   </div>
 
   <button class="go" onclick="run()" id="goBtn">encode</button>
   <div class="status" id="status"></div>
 
-  <div class="field result" id="resultField" style="display:none;">
-    <label id="labelResult">result</label>
-    <textarea id="resultOutput" readonly></textarea>
-    <div style="margin-top:10px;">
-      <button class="copy-link" onclick="copyResult()">copy</button>
+  <div class="collapsible" id="resultField">
+    <div class="collapsible-inner">
+      <label id="labelResult">result</label>
+      <textarea id="resultOutput" readonly></textarea>
+      <div style="margin-top:10px;">
+        <button class="copy-link" onclick="copyResult()">copy</button>
+      </div>
     </div>
   </div>
 
@@ -203,6 +321,13 @@
 <script src="cipher.js"></script>
 <script>
 let mode = 'encode';
+const NO_HEX = '000000'; // contributes nothing to the key when hex isn't included
+
+function toggleHex() {
+  const checked = document.getElementById('hexToggle').checked;
+  document.getElementById('colorField').classList.toggle('open', checked);
+  document.getElementById('hexField').classList.toggle('open', checked);
+}
 
 document.getElementById('colorPicker').addEventListener('input', (e) => {
   document.getElementById('hexInput').value = e.target.value;
@@ -221,7 +346,7 @@ function switchMode(m) {
   document.getElementById('btnDecode').classList.toggle('active', m === 'decode');
   document.getElementById('labelText').textContent = m === 'encode' ? 'text' : 'cipher text';
   document.getElementById('goBtn').textContent = m;
-  document.getElementById('resultField').style.display = 'none';
+  document.getElementById('resultField').classList.remove('open');
   document.getElementById('status').textContent = '';
 }
 
@@ -234,21 +359,22 @@ function copyResult() {
 function run() {
   const text = document.getElementById('textInput').value;
   const passphrase = document.getElementById('pwInput').value;
-  const hexKey = document.getElementById('hexInput').value;
+  const hexIncluded = document.getElementById('hexToggle').checked;
+  const hexKey = hexIncluded ? document.getElementById('hexInput').value : NO_HEX;
   const statusEl = document.getElementById('status');
-  document.getElementById('resultField').style.display = 'none';
+  document.getElementById('resultField').classList.remove('open');
 
   statusEl.className = 'status';
   if (!text) { statusEl.textContent = 'enter some text'; statusEl.className = 'status error'; return; }
   if (!passphrase) { statusEl.textContent = 'enter a passphrase'; statusEl.className = 'status error'; return; }
-  if (!hexKey) { statusEl.textContent = 'pick a color'; statusEl.className = 'status error'; return; }
+  if (hexIncluded && !hexKey) { statusEl.textContent = 'pick a color'; statusEl.className = 'status error'; return; }
 
   try {
     const result = mode === 'encode'
       ? encodeCipher(passphrase, hexKey, text)
       : decodeCipher(passphrase, hexKey, text);
     document.getElementById('resultOutput').value = result;
-    document.getElementById('resultField').style.display = 'block';
+    document.getElementById('resultField').classList.add('open');
     statusEl.textContent = '';
   } catch (err) {
     statusEl.textContent = err.message;
