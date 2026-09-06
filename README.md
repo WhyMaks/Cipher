@@ -24,3 +24,5 @@
 - How the Uppercase gets handled?
   - we do all the math treating every letter as lowercase
   - if the original letter was uppercase, we just add 26 to the final number as a flag
+
+# You can check how the cipher works on the [github.io](https://whymaks.github.io/Cipher/), btw
