@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cipher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #52546a;
+    --field: #42445a;
+    --field-focus: #4b4d66;
+    --text: #f5f4f0;
+    --text-dim: #b8b8c4;
+    --accent: #e7a256;
+    --error: #e2897a;
+    --ok: #9ecb8f;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 64px 24px;
+  }
+
+  .wrap { width: 100%; max-width: 460px; }
+
+  .mode-switch {
+    display: flex;
+    gap: 28px;
+    margin-bottom: 44px;
+  }
+
+  .mode-switch button {
+    background: none;
+    border: none;
+    padding: 0 0 6px;
+    font-family: inherit;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+  }
+
+  .mode-switch button.active {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+  }
+
+  label {
+    display: block;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 14px;
+  }
+
+  .field { margin-bottom: 36px; }
+
+  textarea, input[type="text"] {
+    width: 100%;
+    background: var(--field);
+    border: none;
+    border-radius: 14px;
+    color: var(--text);
+    padding: 18px 20px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 16px;
+    resize: none;
+    outline: none;
+    transition: background 0.15s ease;
+  }
+
+  textarea::placeholder, input::placeholder { color: var(--text-dim); }
+
+  textarea { min-height: 100px; line-height: 1.5; }
+  input[type="text"] { height: 62px; }
+
+  textarea:focus, input:focus { background: var(--field-focus); }
+
+  button.go {
+    width: 100%;
+    background: var(--accent);
+    color: #2a1d0c;
+    border: none;
+    border-radius: 14px;
+    padding: 18px;
+    font-family: inherit;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-bottom: 14px;
+  }
+
+  button.go:hover { opacity: 0.92; }
+  button.go:active { opacity: 0.8; }
+
+  .status {
+    font-size: 14px;
+    min-height: 18px;
+    margin-bottom: 6px;
+  }
+  .status.error { color: var(--error); }
+  .status.ok { color: var(--ok); }
+
+  .result textarea {
+    background: transparent;
+    border: 2px solid var(--field);
+    color: var(--text);
+  }
+
+  .copy-link {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .copy-link:hover { color: var(--text); }
+
+  .note {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    margin-top: 56px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="mode-switch">
+    <button id="btnEncode" class="active" onclick="switchMode('encode')">encode</button>
+    <button id="btnDecode" onclick="switchMode('decode')">decode</button>
+  </div>
+
+  <div class="field">
+    <label id="labelText" for="textInput">text</label>
+    <textarea id="textInput" placeholder="type anything"></textarea>
+  </div>
+
+  <div class="field">
+    <label for="pwInput">password</label>
+    <input type="text" id="pwInput" placeholder="passphrase">
+  </div>
+
+  <button class="go" onclick="run()" id="goBtn">encode</button>
+  <div class="status" id="status"></div>
+
+  <div class="field result" id="resultField" style="display:none;">
+    <label id="labelResult">result</label>
+    <textarea id="resultOutput" readonly></textarea>
+    <div style="margin-top:10px;">
+      <button class="copy-link" onclick="copyResult()">copy</button>
+    </div>
+  </div>
+
+  <div class="note">
+    passphrase cipher, running through a local Python server. not real cryptography — don't use it for anything that actually needs to stay private.
+  </div>
+
+</div>
+
+<script>
+let mode = 'encode';
+
+function switchMode(m) {
+  mode = m;
+  document.getElementById('btnEncode').classList.toggle('active', m === 'encode');
+  document.getElementById('btnDecode').classList.toggle('active', m === 'decode');
+  document.getElementById('labelText').textContent = m === 'encode' ? 'text' : 'cipher text';
+  document.getElementById('goBtn').textContent = m;
+  document.getElementById('resultField').style.display = 'none';
+  document.getElementById('status').textContent = '';
+}
+
+function copyResult() {
+  const el = document.getElementById('resultOutput');
+  el.select();
+  navigator.clipboard.writeText(el.value).catch(() => document.execCommand('copy'));
+}
+
+async function run() {
+  const text = document.getElementById('textInput').value;
+  const passphrase = document.getElementById('pwInput').value;
+  const statusEl = document.getElementById('status');
+  document.getElementById('resultField').style.display = 'none';
+
+  statusEl.className = 'status';
+  if (!text) { statusEl.textContent = 'enter some text'; statusEl.className = 'status error'; return; }
+  if (!passphrase) { statusEl.textContent = 'enter a passphrase'; statusEl.className = 'status error'; return; }
+
+  try {
+    const res = await fetch('/api/' + mode, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ passphrase, text })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      statusEl.textContent = data.error || 'something went wrong';
+      statusEl.className = 'status error';
+      return;
+    }
+
+    document.getElementById('resultOutput').value = data.result;
+    document.getElementById('resultField').style.display = 'block';
+    statusEl.textContent = '';
+  } catch (err) {
+    statusEl.textContent = 'could not reach the server';
+    statusEl.className = 'status error';
+  }
+}
+</script>
+</body>
+</html>
