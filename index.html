@@ -170,11 +170,12 @@
   </div>
 
   <div class="note">
-    passphrase cipher, running through a local Python server. not real cryptography — don't use it for anything that actually needs to stay private.
+    passphrase cipher, runs entirely in your browser — nothing is sent anywhere. not real cryptography though — don't use it for anything that actually needs to stay private.
   </div>
 
 </div>
 
+<script src="cipher.js"></script>
 <script>
 let mode = 'encode';
 
@@ -194,7 +195,7 @@ function copyResult() {
   navigator.clipboard.writeText(el.value).catch(() => document.execCommand('copy'));
 }
 
-async function run() {
+function run() {
   const text = document.getElementById('textInput').value;
   const passphrase = document.getElementById('pwInput').value;
   const statusEl = document.getElementById('status');
@@ -205,24 +206,12 @@ async function run() {
   if (!passphrase) { statusEl.textContent = 'enter a passphrase'; statusEl.className = 'status error'; return; }
 
   try {
-    const res = await fetch('/api/' + mode, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ passphrase, text })
-    });
-    const data = await res.json();
-
-    if (!res.ok) {
-      statusEl.textContent = data.error || 'something went wrong';
-      statusEl.className = 'status error';
-      return;
-    }
-
-    document.getElementById('resultOutput').value = data.result;
+    const result = mode === 'encode' ? encodeCipher(passphrase, text) : decodeCipher(passphrase, text);
+    document.getElementById('resultOutput').value = result;
     document.getElementById('resultField').style.display = 'block';
     statusEl.textContent = '';
   } catch (err) {
-    statusEl.textContent = 'could not reach the server';
+    statusEl.textContent = err.message;
     statusEl.className = 'status error';
   }
 }
