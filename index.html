@@ -185,15 +185,14 @@
     font-weight: 700;
   }
 
-  /* algorithm switch (+ / x) between passphrase and hex */
-  .algo-wrap {
+  /* algorithm switch (+ / x), lives inside a collapsible tied to hexToggle */
+  .algo-inner {
     display: flex;
     align-items: center;
     gap: 14px;
-    margin: -8px 0 28px;
   }
 
-  .algo-wrap .line {
+  .algo-inner .line {
     flex: 1;
     height: 1px;
     background: var(--field);
@@ -226,7 +225,7 @@
     color: #2a1d0c;
   }
 
-  /* collapsible sections (color/hex fields, result) */
+  /* collapsible sections (color/hex fields, algo switch, result) */
   .collapsible {
     display: grid;
     grid-template-rows: 0fr;
@@ -263,6 +262,22 @@
 
   button.go:hover { opacity: 0.92; }
   button.go:active { opacity: 0.8; transform: scale(0.98); }
+
+  .formula {
+    font-family: ui-monospace, 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+    background: var(--field);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    line-height: 1.5;
+    word-break: break-word;
+  }
+
+  .formula .key-term {
+    color: var(--accent);
+  }
 
   .status {
     font-size: 14px;
@@ -333,21 +348,23 @@
       </div>
     </div>
 
-    <div class="algo-wrap">
-      <div class="line"></div>
-      <div class="algo-switch">
-        <button type="button" class="algo-btn active" id="algoAdd" onclick="setAlgo('add')">+</button>
-        <button type="button" class="algo-btn" id="algoMul" onclick="setAlgo('multiply')">×</button>
-      </div>
-      <div class="line"></div>
-    </div>
-
     <div class="checkbox-field">
       <label class="checkbox-label">
         <input type="checkbox" id="hexToggle" onchange="toggleHex()">
         <span class="checkbox-box"></span>
         <span class="checkbox-text">include hex?</span>
       </label>
+    </div>
+
+    <div class="collapsible" id="algoWrap">
+      <div class="collapsible-inner algo-inner">
+        <div class="line"></div>
+        <div class="algo-switch">
+          <button type="button" class="algo-btn active" id="algoAdd" onclick="setAlgo('add')">+</button>
+          <button type="button" class="algo-btn" id="algoMul" onclick="setAlgo('multiply')">&times;</button>
+        </div>
+        <div class="line"></div>
+      </div>
     </div>
 
     <div class="collapsible" id="colorField">
@@ -367,6 +384,7 @@
   </div>
 
   <button class="go" onclick="run()" id="goBtn">encode</button>
+  <div class="formula" id="formula"></div>
   <div class="status" id="status"></div>
 
   <div class="collapsible" id="resultField">
@@ -390,21 +408,32 @@
 let mode = 'encode';
 let algo = 'add';
 
+function updateAlgoVisibility() {
+  const bothIncluded = document.getElementById('passToggle').checked
+    && document.getElementById('hexToggle').checked;
+  document.getElementById('algoWrap').classList.toggle('open', bothIncluded);
+}
+
 function togglePass() {
   const checked = document.getElementById('passToggle').checked;
   document.getElementById('passField').classList.toggle('open', checked);
+  updateAlgoVisibility();
+  updateFormula();
 }
 
 function toggleHex() {
   const checked = document.getElementById('hexToggle').checked;
   document.getElementById('colorField').classList.toggle('open', checked);
   document.getElementById('hexField').classList.toggle('open', checked);
+  updateAlgoVisibility();
+  updateFormula();
 }
 
 function setAlgo(a) {
   algo = a;
   document.getElementById('algoAdd').classList.toggle('active', a === 'add');
   document.getElementById('algoMul').classList.toggle('active', a === 'multiply');
+  updateFormula();
 }
 
 document.getElementById('colorPicker').addEventListener('input', (e) => {
@@ -426,6 +455,7 @@ function switchMode(m) {
   document.getElementById('goBtn').textContent = m;
   document.getElementById('resultField').classList.remove('open');
   document.getElementById('status').textContent = '';
+  updateFormula();
 }
 
 function copyResult() {
@@ -465,6 +495,37 @@ function run() {
     statusEl.className = 'status error';
   }
 }
+
+function updateFormula() {
+  const passIncluded = document.getElementById('passToggle').checked;
+  const hexIncluded = document.getElementById('hexToggle').checked;
+  const opSymbol = algo === 'multiply' ? '\u00d7' : '+';
+
+  let keyExpr;
+  if (passIncluded && hexIncluded) {
+    keyExpr = '(<span class="key-term">password</span> ' + opSymbol + ' <span class="key-term">hex</span>)';
+  } else if (passIncluded) {
+    keyExpr = '<span class="key-term">password</span>';
+  } else if (hexIncluded) {
+    keyExpr = '<span class="key-term">hex</span>';
+  } else {
+    keyExpr = '';
+  }
+
+  const formulaEl = document.getElementById('formula');
+  if (!keyExpr) {
+    formulaEl.innerHTML = mode === 'encode'
+      ? 'encoded = ascii(text)'
+      : 'text = ascii<sup>-1</sup>(encoded)';
+    return;
+  }
+
+  formulaEl.innerHTML = mode === 'encode'
+    ? 'encoded = ascii(text) + ' + keyExpr
+    : 'text = ascii<sup>-1</sup>(encoded &minus; ' + keyExpr + ')';
+}
+
+updateFormula();
 </script>
 </body>
 </html>
