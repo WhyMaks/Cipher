@@ -12,6 +12,6 @@
       - What will the passphrase be, for example you can turn on default passphrase, and time, or just turn of password entirely
 
 3. How the cipher works?
-      - You chose, but one of the most basic algorithm you can make is (encoded text = text(ASCII) + password(ASCII)). (more accurate formula for your situation is on the site)
+      - You chose, but one of the most basic algorithm you can make is (encoded text = text(ASCII) + password(ASCII)). (more accurate formula for your situation shown while you are encoding/decoding)
 
 ### You can check how the cipher works [here](https://whymaks.github.io/Cipher/), btw
