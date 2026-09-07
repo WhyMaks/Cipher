@@ -279,6 +279,11 @@
     color: var(--accent);
   }
 
+  .formula .time-inline {
+    color: var(--text-dim);
+    font-size: 11px;
+  }
+
   .status {
     font-size: 14px;
     min-height: 18px;
@@ -309,6 +314,43 @@
     transition: color 0.2s ease;
   }
   .copy-link:hover { color: var(--text); }
+
+  /* time precision select */
+  select {
+    width: 100%;
+    background: var(--field);
+    border: none;
+    border-radius: 14px;
+    color: var(--text);
+    padding: 16px 20px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    outline: none;
+    cursor: pointer;
+    transition: background 0.25s ease, box-shadow 0.25s ease;
+  }
+  select:focus {
+    background: var(--field-focus);
+    box-shadow: 0 0 0 2px var(--accent) inset;
+  }
+  select option { background: var(--bg); color: var(--text); }
+
+  .time-preview {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--text-dim);
+    font-family: ui-monospace, 'JetBrains Mono', monospace;
+  }
+
+  .time-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 10px;
+  }
+
+  .time-row .time-preview { margin-top: 0; }
 
   .note {
     font-size: 13px;
@@ -356,17 +398,6 @@
       </label>
     </div>
 
-    <div class="collapsible" id="algoWrap">
-      <div class="collapsible-inner algo-inner">
-        <div class="line"></div>
-        <div class="algo-switch">
-          <button type="button" class="algo-btn active" id="algoAdd" onclick="setAlgo('add')">+</button>
-          <button type="button" class="algo-btn" id="algoMul" onclick="setAlgo('multiply')">&times;</button>
-        </div>
-        <div class="line"></div>
-      </div>
-    </div>
-
     <div class="collapsible" id="colorField">
       <div class="collapsible-inner">
         <label for="colorPicker">color</label>
@@ -378,6 +409,51 @@
       <div class="collapsible-inner">
         <label for="hexInput">hex code</label>
         <input type="text" id="hexInput" placeholder="#e7a256" value="#e7a256">
+      </div>
+    </div>
+
+    <div class="checkbox-field">
+      <label class="checkbox-label">
+        <input type="checkbox" id="timeToggle" onchange="toggleTime()">
+        <span class="checkbox-box"></span>
+        <span class="checkbox-text">include time?</span>
+      </label>
+    </div>
+
+    <div class="collapsible" id="timeField">
+      <div class="collapsible-inner">
+        <label for="timePrecision">precision</label>
+        <select id="timePrecision">
+          <option value="second">second</option>
+          <option value="minute">minute</option>
+          <option value="hour">hour</option>
+          <option value="day">day</option>
+          <option value="month">month</option>
+          <option value="year">year</option>
+        </select>
+        <div class="time-preview" id="timePreview"></div>
+      </div>
+    </div>
+
+    <div class="collapsible" id="timeManualField">
+      <div class="collapsible-inner">
+        <label for="timeManualInput">time value</label>
+        <input type="text" id="timeManualInput" placeholder="e.g. 20260907123456">
+        <div class="time-row">
+          <div class="time-preview" id="timeNow"></div>
+          <button class="copy-link" onclick="fillNow()">now</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="collapsible" id="algoWrap">
+      <div class="collapsible-inner algo-inner">
+        <div class="line"></div>
+        <div class="algo-switch">
+          <button type="button" class="algo-btn active" id="algoAdd" onclick="setAlgo('add')">+</button>
+          <button type="button" class="algo-btn" id="algoMul" onclick="setAlgo('multiply')">&times;</button>
+        </div>
+        <div class="line"></div>
       </div>
     </div>
 
@@ -398,7 +474,7 @@
   </div>
 
   <div class="note">
-    
+    decode needs the exact time value used at encoding
   </div>
 
 </div>
@@ -408,10 +484,47 @@
 let mode = 'encode';
 let algo = 'add';
 
+const PRECISIONS = [
+  { id: 'second', parts: ['YYYY', 'MM', 'DD', 'HH', 'mm', 'ss'] },
+  { id: 'minute', parts: ['YYYY', 'MM', 'DD', 'HH', 'mm'] },
+  { id: 'hour',   parts: ['YYYY', 'MM', 'DD', 'HH'] },
+  { id: 'day',    parts: ['YYYY', 'MM', 'DD'] },
+  { id: 'month',  parts: ['YYYY', 'MM'] },
+  { id: 'year',   parts: ['YYYY'] },
+];
+
+function currentTimeParts() {
+  const d = new Date();
+  return {
+    YYYY: String(d.getFullYear()),
+    MM: String(d.getMonth() + 1).padStart(2, '0'),
+    DD: String(d.getDate()).padStart(2, '0'),
+    HH: String(d.getHours()).padStart(2, '0'),
+    mm: String(d.getMinutes()).padStart(2, '0'),
+    ss: String(d.getSeconds()).padStart(2, '0'),
+  };
+}
+
+function updateTimePreview() {
+  const sel = document.getElementById('timePrecision');
+  if (!sel) return;
+  const prec = PRECISIONS.find(p => p.id === sel.value);
+  const parts = currentTimeParts();
+  document.getElementById('timePreview').textContent =
+    prec.parts.map(k => parts[k]).join('');
+}
+
+function currentTimeKeyValue() {
+  const parts = currentTimeParts();
+  const pp = PRECISIONS.find(p => p.id === document.getElementById('timePrecision').value);
+  return pp.parts.map(k => parts[k]).join('');
+}
+
 function updateAlgoVisibility() {
-  const bothIncluded = document.getElementById('passToggle').checked
-    && document.getElementById('hexToggle').checked;
-  document.getElementById('algoWrap').classList.toggle('open', bothIncluded);
+  const included = document.getElementById('passToggle').checked
+    || document.getElementById('hexToggle').checked
+    || document.getElementById('timeToggle').checked;
+  document.getElementById('algoWrap').classList.toggle('open', included);
 }
 
 function togglePass() {
@@ -426,6 +539,38 @@ function toggleHex() {
   document.getElementById('colorField').classList.toggle('open', checked);
   document.getElementById('hexField').classList.toggle('open', checked);
   updateAlgoVisibility();
+  updateFormula();
+}
+
+function updateTimeFields() {
+  const checked = document.getElementById('timeToggle').checked;
+  document.getElementById('timeField').classList.toggle('open', checked && mode === 'encode');
+  document.getElementById('timeManualField').classList.toggle('open', checked && mode === 'decode');
+}
+
+function toggleTime() {
+  updateTimeFields();
+  if (document.getElementById('timeToggle').checked) {
+    if (mode === 'encode') updateTimePreview(); else updateNowLine();
+  }
+  updateAlgoVisibility();
+  updateFormula();
+}
+
+function currentTimeString() {
+  const d = new Date();
+  const p2 = (n) => String(n).padStart(2, '0');
+  return String(d.getFullYear()) + p2(d.getMonth() + 1) + p2(d.getDate())
+    + p2(d.getHours()) + p2(d.getMinutes()) + p2(d.getSeconds());
+}
+
+function updateNowLine() {
+  const el = document.getElementById('timeNow');
+  if (el) el.textContent = 'now: ' + currentTimeString();
+}
+
+function fillNow() {
+  document.getElementById('timeManualInput').value = currentTimeString();
   updateFormula();
 }
 
@@ -447,12 +592,20 @@ document.getElementById('hexInput').addEventListener('input', (e) => {
   }
 });
 
+document.getElementById('timePrecision').addEventListener('change', updateTimePreview);
+document.getElementById('timeManualInput').addEventListener('input', updateFormula);
+
+setInterval(updateTimePreview, 1000);
+setInterval(updateNowLine, 1000);
+updateNowLine();
+
 function switchMode(m) {
   mode = m;
   document.getElementById('btnEncode').classList.toggle('active', m === 'encode');
   document.getElementById('btnDecode').classList.toggle('active', m === 'decode');
   document.getElementById('labelText').textContent = m === 'encode' ? 'text' : 'cipher text';
   document.getElementById('goBtn').textContent = m;
+  updateTimeFields();
   document.getElementById('resultField').classList.remove('open');
   document.getElementById('status').textContent = '';
   updateFormula();
@@ -468,25 +621,29 @@ function run() {
   const text = document.getElementById('textInput').value;
   const passIncluded = document.getElementById('passToggle').checked;
   const hexIncluded = document.getElementById('hexToggle').checked;
+  const timeIncluded = document.getElementById('timeToggle').checked;
   const passphrase = passIncluded ? document.getElementById('pwInput').value : null;
   const hexKey = hexIncluded ? document.getElementById('hexInput').value : null;
+  const timePrecision = (timeIncluded && mode === 'encode') ? document.getElementById('timePrecision').value : null;
+  const timeStr = (timeIncluded && mode === 'decode') ? document.getElementById('timeManualInput').value.trim() : null;
   const statusEl = document.getElementById('status');
   document.getElementById('resultField').classList.remove('open');
 
   statusEl.className = 'status';
   if (!text) { statusEl.textContent = 'enter some text'; statusEl.className = 'status error'; return; }
-  if (!passIncluded && !hexIncluded) {
-    statusEl.textContent = 'include at least a password or a hex key';
+  if (!passIncluded && !hexIncluded && !timeIncluded) {
+    statusEl.textContent = 'include at least a password, a hex key, or the time';
     statusEl.className = 'status error';
     return;
   }
   if (passIncluded && !passphrase) { statusEl.textContent = 'enter a passphrase'; statusEl.className = 'status error'; return; }
   if (hexIncluded && !hexKey) { statusEl.textContent = 'pick a color'; statusEl.className = 'status error'; return; }
+  if (timeIncluded && mode === 'decode' && !timeStr) { statusEl.textContent = 'enter the time value'; statusEl.className = 'status error'; return; }
 
   try {
     const result = mode === 'encode'
-      ? encodeCipher(passphrase, hexKey, text, algo)
-      : decodeCipher(passphrase, hexKey, text, algo);
+      ? encodeCipher(passphrase, hexKey, timePrecision, text, algo)
+      : decodeCipher(passphrase, hexKey, timeStr, text, algo);
     document.getElementById('resultOutput').value = result;
     document.getElementById('resultField').classList.add('open');
     statusEl.textContent = '';
@@ -499,31 +656,40 @@ function run() {
 function updateFormula() {
   const passIncluded = document.getElementById('passToggle').checked;
   const hexIncluded = document.getElementById('hexToggle').checked;
+  const timeIncluded = document.getElementById('timeToggle').checked;
   const opSymbol = algo === 'multiply' ? '\u00d7' : '+';
 
-  let keyExpr;
-  if (passIncluded && hexIncluded) {
-    keyExpr = '(<span class="key-term">password</span> ' + opSymbol + ' <span class="key-term">hex</span>)';
-  } else if (passIncluded) {
-    keyExpr = '<span class="key-term">password</span>';
-  } else if (hexIncluded) {
-    keyExpr = '<span class="key-term">hex</span>';
-  } else {
-    keyExpr = '';
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const terms = [];
+  if (passIncluded) terms.push('<span class="key-term">password</span>');
+  if (hexIncluded) terms.push('<span class="key-term">hex</span>');
+  if (timeIncluded) {
+    let t = '<span class="key-term">time</span>';
+    const tv = mode === 'encode'
+      ? currentTimeKeyValue()
+      : document.getElementById('timeManualInput').value.trim();
+    if (tv) t += '<span class="time-inline"> (' + esc(tv) + ')</span>';
+    terms.push(t);
   }
 
   const formulaEl = document.getElementById('formula');
-  if (!keyExpr) {
+  if (terms.length === 0) {
     formulaEl.innerHTML = mode === 'encode'
       ? 'encoded = ascii(text)'
       : 'text = ascii<sup>-1</sup>(encoded)';
     return;
   }
 
+  const keyExpr = '(' + terms.join(' ' + opSymbol + ' ') + ')';
   formulaEl.innerHTML = mode === 'encode'
     ? 'encoded = ascii(text) + ' + keyExpr
     : 'text = ascii<sup>-1</sup>(encoded &minus; ' + keyExpr + ')';
 }
+
+function updateTimeFormulaTick() {
+  if (document.getElementById('timeToggle').checked) updateFormula();
+}
+setInterval(updateTimeFormulaTick, 1000);
 
 updateFormula();
 </script>
