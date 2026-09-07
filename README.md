@@ -18,7 +18,7 @@
 1. Why would i use it?
       - Because how customisable it is, you can literally change the algorithm yourself, as simple as it sounds
 
-2. Why wouldn`t i use it?
+2. Why wouldnt i use it?
       - Because its under heavy development          
 
 3. What can you customise?
