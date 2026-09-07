@@ -1,4 +1,4 @@
-# Main info
+# Q&A
 
 1. Why would i use it?
       - Because how customisable it is, you can literally change the algorithm yourself
