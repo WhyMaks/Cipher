@@ -1,10 +1,12 @@
+<p align="center">
+  <img src="icon.svg" width="150" height="150" alt="042">
+</p>
 
-![Cipher logo](icon.svg)
 
 <h1 align="center">WhyMaks/Cipher</h1>
 <p align="center">Simple yet pretty customisable cipher</p>
 
-### You can check how the cipher works [here](https://whymaks.github.io/Cipher/), btw
+## You can check how the cipher works [here](https://whymaks.github.io/Cipher/), btw
 
 # Simple image of how is it working
 <img width="1685" height="846" alt="image" src="https://github.com/user-attachments/assets/b7b35557-759d-43da-a4a7-34dc2324edbb" />
