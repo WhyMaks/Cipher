@@ -1,3 +1,7 @@
+# Simple image of how is it working
+<img width="1685" height="846" alt="image" src="https://github.com/user-attachments/assets/b7b35557-759d-43da-a4a7-34dc2324edbb" />
+            (may be inaccurate, thats just an example)
+
 # Info
 
 1. Why would i use it?
