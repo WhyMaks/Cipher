@@ -5,7 +5,7 @@
 # Info
 
 1. Why would i use it?
-      - Because how customisable it is, you can literally change the algorithm yourself
+      - Because how customisable it is, you can literally change the algorithm yourself, as simple as it sounds
 
 2. What can you customise?
       - How the password adds up between the password (passphrase, hex, time) and the text
