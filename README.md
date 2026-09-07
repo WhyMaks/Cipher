@@ -7,6 +7,9 @@
 1. Why would i use it?
       - Because how customisable it is, you can literally change the algorithm yourself, as simple as it sounds
 
+2. Why would`nt i use it?
+      - Because of under how heavy development it is, everything is changing like every day or so            
+
 2. What can you customise?
       - How the password adds up between the password (passphrase, hex, time) and the text
       - What will the passphrase be, for example you can turn on default passphrase, and time, or just turn of password entirely
